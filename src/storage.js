@@ -6,12 +6,17 @@
  */
 import {
   auth, db, googleProvider,
-  signInWithPopup, signOut as fbSignOut, onAuthStateChanged,
+  signInWithPopup, signInWithRedirect, getRedirectResult,
+  signOut as fbSignOut, onAuthStateChanged,
   doc, getDoc, setDoc, deleteDoc, collection, getDocs
 } from './firebase.js';
 
 let currentUser = null;
 let syncListeners = [];
+
+/* ── Detect mobile/PWA ── */
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const isPWA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
 /* ── Firestore helpers ── */
 function userDocRef(key) {
@@ -70,7 +75,7 @@ async function pullFromCloud() {
   }
 }
 
-/* ── Push local → cloud (first time sync) ── */
+/* ── Push local → cloud ── */
 async function pushToCloud() {
   if (!currentUser) return;
   try {
@@ -86,12 +91,11 @@ async function pushToCloud() {
   }
 }
 
-/* ── Sync notification ── */
 function notifySync() {
   syncListeners.forEach(fn => { try { fn(); } catch(e) {} });
 }
 
-/* ── Storage API (unchanged interface) ── */
+/* ── Storage API ── */
 const storage = {
   async get(key) {
     const value = localStorage.getItem(key);
@@ -123,17 +127,25 @@ const firebaseAuth = {
   get user() { return currentUser; },
 
   async signIn() {
-    try {
+    // On mobile PWA, popup doesn't work → use redirect
+    if (isPWA || isMobile) {
+      try {
+        await signInWithRedirect(auth, googleProvider);
+        // Page will redirect, no return
+      } catch (e) {
+        // Fallback to popup if redirect fails
+        console.warn('[auth] redirect failed, trying popup:', e.message);
+        const result = await signInWithPopup(auth, googleProvider);
+        return result.user;
+      }
+    } else {
       const result = await signInWithPopup(auth, googleProvider);
       return result.user;
-    } catch (e) {
-      console.error('[auth] sign in failed:', e.message);
-      throw e;
     }
   },
 
   async signOut() {
-    try { await fbSignOut(auth); } catch(e) {}
+    try { await fbSignOut(auth); currentUser = null; notifySync(); } catch(e) {}
   },
 
   onAuthChange(fn) {
@@ -151,6 +163,18 @@ const firebaseAuth = {
   }
 };
 
+/* ── Handle redirect result (mobile PWA) ── */
+getRedirectResult(auth).then(result => {
+  if (result?.user) {
+    currentUser = result.user;
+    pullFromCloud();
+    notifySync();
+  }
+}).catch(e => {
+  console.warn('[auth] redirect result error:', e.message);
+});
+
+/* ── Auth state listener ── */
 onAuthStateChanged(auth, async (user) => {
   const wasLoggedIn = !!currentUser;
   currentUser = user;
