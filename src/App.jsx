@@ -10,7 +10,7 @@ import {
   Target, ShoppingCart, Car, Baby, Dog, Scissors, Gamepad2,
   Utensils, Zap, Heart, BookOpen, Plane, Gift, Wrench, Smartphone,
   Music, Coffee, Briefcase, Landmark, Users, DollarSign, RefreshCw,
-  Shield, Star, RotateCcw, Play, Download, Upload, Copy, Tag
+  Shield, Star, RotateCcw, Play, Download, Upload, Copy, Tag, Cloud, CloudOff, LogIn, LogOut
 } from "lucide-react";
 
 const CSS = `
@@ -676,19 +676,31 @@ function MainApp(){
   const[sub,setSub]=useState(null);
   const[wiz,setWiz]=useState(false);
   const[showHH,setShowHH]=useState(false);
+  const[authUser,setAuthUser]=useState(window.firebaseAuth?.user||null);
+  const[syncing,setSyncing]=useState(false);
 
   const activeId=meta?.active||null;
 
+  /* Reload all state from storage */
+  const reloadAll=useCallback(async()=>{
+    let m=await loadMeta();
+    if(!m){const mig=await migrateOld();if(mig){m=mig.meta;setS(mig.data);setMeta(m);return;}}
+    if(!m)return;
+    setMeta(m);
+    if(m.active){const d=await load(m.active);setS(d);}
+  },[]);
+
   useEffect(()=>{
     (async()=>{
-      let m=await loadMeta();
-      if(!m){const mig=await migrateOld();if(mig){m=mig.meta;setS(mig.data);setMeta(m);setLoading(false);return;}}
-      if(!m){setLoading(false);return;}
-      setMeta(m);
-      if(m.active){const d=await load(m.active);setS(d);}
+      await reloadAll();
       setLoading(false);
     })();
-  },[]);
+    /* Listen for auth changes */
+    const unsubAuth=window.firebaseAuth?.onAuthChange?.(user=>{setAuthUser(user);});
+    /* Listen for sync events (cloud → local pull done) */
+    const unsubSync=window.firebaseAuth?.onSync?.(()=>{reloadAll();});
+    return ()=>{if(unsubAuth)unsubAuth();if(unsubSync)unsubSync();};
+  },[reloadAll]);
   useEffect(()=>{if(S&&meta?.active&&!loading)save(meta.active,S);},[S,loading]);
   useEffect(()=>{if(meta&&!loading)saveMeta(meta);},[meta,loading]);
 
@@ -1062,6 +1074,33 @@ function MainApp(){
     };
     return(
       <div style={{display:"flex",flexDirection:"column",gap:18}}>
+        <Card>
+          <p style={{fontSize:11,fontWeight:600,color:"var(--text3)",textTransform:"uppercase",letterSpacing:.5,margin:"0 0 12px"}}>Synchronisation cloud</p>
+          {authUser?(
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:40,height:40,borderRadius:12,background:"var(--green2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Cloud size={18} color="var(--green)"/></div>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontSize:14,fontWeight:600,color:"var(--text)",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{authUser.displayName||authUser.email}</p>
+                  <p style={{fontSize:11,color:"var(--green)",margin:0,fontWeight:600}}>Synchronisé</p>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <Btn sm v="secondary" onClick={async()=>{try{await window.firebaseAuth.forceSync();toast("Synchronisé !");}catch(e){toast("Erreur sync");}}}><Cloud size={14}/>Forcer sync</Btn>
+                <Btn sm v="muted" onClick={async()=>{await window.firebaseAuth.signOut();setAuthUser(null);toast("Déconnecté");}}>Déconnexion</Btn>
+              </div>
+            </div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:40,height:40,borderRadius:12,background:"var(--bg2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><CloudOff size={18} color="var(--text3)"/></div>
+                <div><p style={{fontSize:14,fontWeight:500,color:"var(--text2)",margin:0}}>Données locales uniquement</p><p style={{fontSize:11,color:"var(--text3)",margin:"2px 0 0"}}>Connectez-vous pour synchroniser entre appareils</p></div>
+              </div>
+              <Btn full onClick={async()=>{try{const u=await window.firebaseAuth.signIn();setAuthUser(u);toast("Connecté !");}catch(e){if(e.code!=="auth/popup-closed-by-user")toast("Erreur connexion");}}}><LogIn size={16}/>Se connecter avec Google</Btn>
+            </div>
+          )}
+        </Card>
+
         <Card>
           <p style={{fontSize:11,fontWeight:600,color:"var(--text3)",textTransform:"uppercase",letterSpacing:.5,margin:"0 0 12px"}}>Apparence</p>
           <div style={{display:"flex",gap:8}}>
