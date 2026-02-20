@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+﻿import React, { useRef, useState } from "react";
 import {
   Baby,
   Check,
@@ -58,6 +58,7 @@ export default function SettingsFeature({
   authUser,
   setAuthUser
 }) {
+  const importInputRef = useRef(null);
   const [newHHName, setNewHHName] = useState("");
   const [showNewHH, setShowNewHH] = useState(false);
   const [copyCharges, setCopyCharges] = useState(true);
@@ -132,7 +133,7 @@ export default function SettingsFeature({
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 44, height: 44, borderRadius: 14, background: "var(--bg2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><CloudOff size={20} color="var(--text3)" /></div>
-              <div><p style={{ fontSize: 14, fontWeight: 500, color: "var(--text2)", margin: 0 }}>Donnees locales uniquement</p><p style={{ fontSize: 11, color: "var(--text3)", margin: "2px 0 0" }}>Connectez-vous pour synchroniser entre appareils</p></div>
+              <div><p style={{ fontSize: 14, fontWeight: 500, color: "var(--text2)", margin: 0 }}>Compte requis</p><p style={{ fontSize: 11, color: "var(--text3)", margin: "2px 0 0" }}>Connectez-vous pour acceder a vos foyers</p></div>
             </div>
             <Btn full onClick={async () => { try { const u = await window.firebaseAuth.signIn(); if (u) { setAuthUser(u); toast("Connecte !"); } } catch (e) { if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/redirect-cancelled-by-user") toast(e.code || e.message); } }}><LogIn size={16} />Se connecter avec Google</Btn>
           </div>
@@ -213,11 +214,23 @@ export default function SettingsFeature({
       </Modal>
 
       <Modal open={!!editHH} onClose={() => setEditHH(null)} title="Renommer le foyer"><div style={{ display: "flex", flexDirection: "column", gap: 14 }}><Inp label="Nom" value={editHHName} onChange={e => setEditHHName(e.target.value)} /><Btn full onClick={() => { if (!editHHName.trim()) return; renameHH(editHH, editHHName.trim()); toast("Renomme"); setEditHH(null); }}>Enregistrer</Btn></div></Modal>
-      <Modal open={showImport} onClose={() => setShowImport(false)} title="Restaurer un backup"><div style={{ display: "flex", flexDirection: "column", gap: 14 }}><p style={{ fontSize: 14, color: "var(--text2)", lineHeight: 1.5, margin: 0 }}>Selectionnez un fichier JSON (backup complet ou export de foyer).</p><input type="file" accept=".json" onChange={handleImport} style={{ fontSize: 14, color: "var(--text)" }} /></div></Modal>
+      <Modal open={showImport} onClose={() => setShowImport(false)} title="Restaurer un backup">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <p style={{ fontSize: 14, color: "var(--text2)", lineHeight: 1.5, margin: 0 }}>Selectionnez un fichier JSON (backup complet ou export de foyer).</p>
+          <input ref={importInputRef} type="file" accept=".json,application/json" onChange={handleImport} style={{ display: "none" }} />
+          <Btn full onClick={() => importInputRef.current?.click()}><Upload size={14} />Choisir un fichier JSON</Btn>
+        </div>
+      </Modal>
       <ConfirmDialog open={!!delHHId} onClose={() => setDelHHId(null)} onOk={() => { deleteHH(delHHId); toast("Foyer supprime"); }} msg="Supprimer definitivement ce foyer et toutes ses donnees ?" />
       <ConfirmDialog open={!!removePersonId} onClose={() => setRemovePersonId(null)} onOk={() => { dispatch(removePerson(removePersonId)); toast("Personne retiree"); }} msg="Retirer cette personne du foyer ?" />
       <ConfirmDialog open={confirmReset} onClose={() => setConfirmReset(false)} onOk={() => { dispatch(resetFoyer()); toast("Reinitialise"); }} msg="Supprimer toutes les donnees du foyer actif ?" />
     </div>
   );
 }
+
+
+
+
+
+
 

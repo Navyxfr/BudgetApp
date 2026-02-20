@@ -294,7 +294,7 @@ export default function OnboardingFeature({
         )}
       </div>
 
-      <div className="sa-onb-bot" style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "16px 28px", background: "color-mix(in srgb, var(--bg) 90%, transparent)", backdropFilter: "blur(10px)", borderTop: "1px solid var(--sep)" }}>
+      <div className="sa-onb-bot" style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 30, padding: "16px 28px", background: "color-mix(in srgb, var(--bg) 90%, transparent)", backdropFilter: "blur(10px)", borderTop: "1px solid var(--sep)" }}>
         <div style={{ display: "flex", gap: 12 }}>
           {step > 0 && step < STEPS - 1 && <Btn v="muted" full onClick={() => setStep(step + 1)}>Passer</Btn>}
           {step < STEPS - 1 ? <Btn full onClick={() => setStep(step + 1)}>Continuer</Btn> : <Btn full onClick={finish}><Check size={18} />Commencer</Btn>}

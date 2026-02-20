@@ -148,10 +148,10 @@ async function cloudListAll() {
   try {
     const colRef = collection(db, 'users', currentUser.uid, 'data');
     const snap = await getDocs(colRef);
-    return snap.docs.map(d => d.data());
+    return { ok: true, docs: snap.docs.map(d => d.data()) };
   } catch (e) {
     console.warn('[sync] list failed:', e.message);
-    return [];
+    return { ok: false, docs: [], error: e };
   }
 }
 
@@ -207,9 +207,37 @@ async function pushRecordToCloud(key, record) {
   await cloudSet(key, record.value, record.updatedAt || Date.now());
 }
 
-async function mergeCloudAndLocal() {
+function hasUsableLocalMeta() {
+  try {
+    const raw = localStorage.getItem('bp-v4-meta');
+    if (!raw) return false;
+    const meta = JSON.parse(raw);
+    return Array.isArray(meta?.households) && meta.households.length > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+function forceApplyCloudDocsLocally(cloudDocs) {
+  for (const d of cloudDocs || []) {
+    const key = d?.key;
+    if (!isBudgetKey(key)) continue;
+    const updatedAt = Number(d?.updatedAt || Date.now());
+    if (d?.deleted) {
+      localStorage.removeItem(key);
+      setKeyUpdatedAt(key, updatedAt);
+      setKeyDeletedAt(key, updatedAt);
+      continue;
+    }
+    localStorage.setItem(key, String(d?.value ?? ''));
+    setKeyUpdatedAt(key, updatedAt);
+    removeKeyDeletedAt(key);
+  }
+}
+
+async function mergeCloudAndLocal(cloudDocsInput) {
   purgeOldDeletedEntries();
-  const cloudDocs = await cloudListAll();
+  const cloudDocs = cloudDocsInput || [];
   const cloudByKey = new Map();
   for (const d of cloudDocs) {
     if (isBudgetKey(d?.key)) cloudByKey.set(d.key, d);
@@ -255,12 +283,26 @@ async function mergeCloudAndLocal() {
 async function pullFromCloud() {
   if (!currentUser) return;
   try {
-    const cloudDocs = await cloudListAll();
+    const listed = await cloudListAll();
+    if (!listed?.ok) {
+      notifyAuthError(listed?.error || new Error('sync/list-failed'));
+      return;
+    }
+    const cloudDocs = listed.docs || [];
     if (cloudDocs.length === 0) {
       await pushToCloud();
       return;
     }
-    await mergeCloudAndLocal();
+
+    // Bootstrap behavior: if this browser has no usable local meta yet,
+    // prioritize cloud snapshot so user immediately recovers existing foyers.
+    if (!hasUsableLocalMeta()) {
+      forceApplyCloudDocsLocally(cloudDocs);
+      notifySync();
+      return;
+    }
+
+    await mergeCloudAndLocal(cloudDocs);
     notifySync();
   } catch (e) {
     console.warn('[sync] pull failed:', e.message);
@@ -369,6 +411,11 @@ const firebaseAuth = {
       const result = await signInWithPopup(auth, googleProvider);
       return result.user;
     } catch (e) {
+      if (e?.code === 'auth/unauthorized-domain') {
+        const err = new Error(`Domaine non autorise pour Firebase Auth: ${window.location.hostname}`);
+        err.code = 'auth/unauthorized-domain';
+        throw err;
+      }
       // Fallback to redirect on mobile or when popup is blocked/cancelled.
       const canFallbackToRedirect =
         isMobile ||

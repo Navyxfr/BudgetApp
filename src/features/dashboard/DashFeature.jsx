@@ -231,10 +231,10 @@ export default function DashFeature({
           {chartData.length > 0 && (
             <Card>
               <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 16px" }}>Budget vs Reel</p>
-              <ResponsiveContainer width="100%" height={170}>
+              <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={chartData} barGap={3}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--sep)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 9, fill: "var(--text3)" }} interval={0} angle={-35} textAnchor="end" height={50} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "var(--text3)" }} interval={0} angle={-30} textAnchor="end" height={70} />
                   <YAxis tick={{ fontSize: 9, fill: "var(--text3)" }} />
                   <Tooltip formatter={v2 => eur(v2)} contentStyle={{ borderRadius: 14, fontSize: 12, border: "none", background: "var(--card)" }} />
                   <Bar dataKey="Budget" fill="var(--accent)" opacity={0.2} radius={[8, 8, 0, 0]} />
@@ -246,9 +246,9 @@ export default function DashFeature({
           {pieData.length > 0 && (
             <Card>
               <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 16px" }}>Repartition</p>
-              <ResponsiveContainer width="100%" height={170}>
+              <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" outerRadius={60} innerRadius={40} strokeWidth={0}>
+                  <Pie data={pieData} dataKey="value" cx="50%" cy="50%" outerRadius={72} innerRadius={46} strokeWidth={0}>
                     {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
                   </Pie>
                   <Tooltip formatter={v2 => eur(v2)} contentStyle={{ borderRadius: 14, fontSize: 12, border: "none", background: "var(--card)" }} />
