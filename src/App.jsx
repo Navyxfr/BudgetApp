@@ -117,7 +117,11 @@ const exportCSV=(state,name)=>{
 const exportBackup=async(meta)=>{
   const backup={meta,households:{}};
   for(const h of meta.households){const d=await load(h.id);if(d)backup.households[h.id]=d;}
-  dlFile(JSON.stringify(backup,null,2),"budget-backup-"+new Date().toISOString().slice(0,10)+".json","application/json");
+  dlFile(
+    JSON.stringify(backup,null,2),
+    "budget-backup-"+new Date().toISOString().slice(0,10)+".bpbackup",
+    "application/x-budget-backup+json"
+  );
 };
 
 /* â•â• TOAST CONTEXT â•â• */

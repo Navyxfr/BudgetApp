@@ -191,8 +191,8 @@ export default function SettingsFeature({
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><Btn sm v="secondary" onClick={() => { exportCSV(S, activeHH?.name || "budget"); toast("CSV exporte"); }}><Download size={13} />CSV depenses</Btn><Btn sm v="secondary" onClick={() => { exportJSON(S, activeHH?.name || "budget"); toast("JSON exporte"); }}><Download size={13} />JSON foyer</Btn></div>
         <div style={{ height: 1, background: "var(--sep2)", margin: "14px 0" }} />
         <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>Backup</p>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><Btn sm v="secondary" onClick={() => { if (meta) exportBackup(meta); toast("Backup telecharge"); }}><Download size={13} />Telecharger backup</Btn><Btn sm v="secondary" onClick={() => setShowImport(true)}><Upload size={13} />Restaurer</Btn></div>
-        <p style={{ fontSize: 11, color: "var(--text3)", margin: "8px 0 0", lineHeight: 1.4 }}>Le backup inclut tous les foyers. La restauration fusionne avec les donnees existantes.</p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><Btn sm v="secondary" onClick={() => { if (meta) exportBackup(meta); toast("Backup telecharge"); }}><Download size={13} />Backup complet (.bpbackup)</Btn><Btn sm v="secondary" onClick={() => setShowImport(true)}><Upload size={13} />Restaurer</Btn></div>
+        <p style={{ fontSize: 11, color: "var(--text3)", margin: "8px 0 0", lineHeight: 1.4 }}>JSON foyer = foyer actif uniquement. Backup (.bpbackup) = tous les foyers + meta.</p>
       </Card>
 
       <p style={sectionLabelStyle}>Zone sensible</p>
@@ -216,9 +216,9 @@ export default function SettingsFeature({
       <Modal open={!!editHH} onClose={() => setEditHH(null)} title="Renommer le foyer"><div style={{ display: "flex", flexDirection: "column", gap: 14 }}><Inp label="Nom" value={editHHName} onChange={e => setEditHHName(e.target.value)} /><Btn full onClick={() => { if (!editHHName.trim()) return; renameHH(editHH, editHHName.trim()); toast("Renomme"); setEditHH(null); }}>Enregistrer</Btn></div></Modal>
       <Modal open={showImport} onClose={() => setShowImport(false)} title="Restaurer un backup">
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <p style={{ fontSize: 14, color: "var(--text2)", lineHeight: 1.5, margin: 0 }}>Selectionnez un fichier JSON (backup complet ou export de foyer).</p>
-          <input ref={importInputRef} type="file" accept=".json,application/json" onChange={handleImport} style={{ display: "none" }} />
-          <Btn full onClick={() => importInputRef.current?.click()}><Upload size={14} />Choisir un fichier JSON</Btn>
+          <p style={{ fontSize: 14, color: "var(--text2)", lineHeight: 1.5, margin: 0 }}>Selectionnez un export foyer (.json) ou un backup complet (.bpbackup).</p>
+          <input ref={importInputRef} type="file" accept=".json,.bpbackup,application/json,application/x-budget-backup+json" onChange={handleImport} style={{ display: "none" }} />
+          <Btn full onClick={() => importInputRef.current?.click()}><Upload size={14} />Choisir un fichier</Btn>
         </div>
       </Modal>
       <ConfirmDialog open={!!delHHId} onClose={() => setDelHHId(null)} onOk={() => { deleteHH(delHHId); toast("Foyer supprime"); }} msg="Supprimer definitivement ce foyer et toutes ses donnees ?" />

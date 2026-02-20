@@ -1,5 +1,6 @@
 import { mergeByUpdatedAt } from "../core/syncMerge.js";
 import { nowKey, today } from "../core/date.js";
+import { calcMonthlyPayment, loanMonths } from "../core/financial.js";
 import { BUDGET_ACTIONS } from "./actions.js";
 
 const DATA_VERSION = 2;
@@ -426,6 +427,26 @@ export function budgetReducer(state, action) {
       const { loan } = action.payload || {};
       if (!loan) return state;
       const ts = today();
+      const monthKey = state.activeMonth || nowKey();
+      const month = ensureMonth(state, monthKey);
+      const computedMp = Number(
+        loan.mp ??
+          calcMonthlyPayment(
+            Number(loan.cap || 0),
+            Number(loan.rate || 0),
+            loanMonths(loan.s, loan.e).t
+          )
+      );
+      const autoCharge = {
+        id: generateId(),
+        name: loan.name || "Pret",
+        amount: computedMp,
+        freq: "monthly",
+        lid: loan.id || undefined,
+        auto: true,
+        createdAt: ts,
+        updatedAt: ts
+      };
       const newLoan = {
         ...loan,
         id: loan.id || generateId(),
@@ -434,7 +455,14 @@ export function budgetReducer(state, action) {
       };
       return {
         ...state,
-        loans: [...(state.loans || []), newLoan]
+        loans: [...(state.loans || []), newLoan],
+        months: {
+          ...(state.months || {}),
+          [monthKey]: {
+            ...month,
+            charges: [...(month.charges || []), { ...autoCharge, lid: newLoan.id }]
+          }
+        }
       };
     }
     case BUDGET_ACTIONS.UPDATE_LOAN: {

@@ -19,6 +19,7 @@ import {
 
 const createState = () => ({
   cfg: { dark: "auto", persons: [], categories: [] },
+  activeMonth: "2026-02",
   loans: [],
   savings: [],
   investments: [],
@@ -148,11 +149,21 @@ describe("budgetReducer - savings", () => {
 });
 
 describe("budgetReducer - loans", () => {
-  it("ADD_LOAN adds one loan", () => {
+  it("ADD_LOAN adds one loan and creates its auto fixed charge in active month", () => {
     const state = createState();
-    const next = budgetReducer(state, addLoan({ id: "l1", name: "Credit", cap: 10000, rate: 3 }));
+    const next = budgetReducer(
+      state,
+      addLoan({ id: "l1", name: "Credit", s: "2026-01-01", e: "2027-01-01", cap: 10000, rate: 3, mp: 120 })
+    );
     expect(next.loans).toHaveLength(1);
     expect(next.loans[0].id).toBe("l1");
+    expect(next.months["2026-02"].charges).toHaveLength(1);
+    expect(next.months["2026-02"].charges[0]).toMatchObject({
+      lid: "l1",
+      auto: true,
+      freq: "monthly",
+      amount: 120
+    });
   });
 
   it("APPLY_EXTRA_PAYMENT reduces loan capital", () => {
