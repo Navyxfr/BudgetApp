@@ -4,6 +4,7 @@ import {
   Check,
   Cloud,
   CloudOff,
+  Copy,
   Download,
   Edit3,
   Home,
@@ -104,6 +105,34 @@ export default function SettingsFeature({
     setShowImport(false);
   };
 
+  const duplicateHousehold = async sourceHousehold => {
+    if (!sourceHousehold?.id) return;
+    try {
+      const sourceState = await load(sourceHousehold.id);
+      if (!sourceState) {
+        toast("Foyer source introuvable", "err");
+        return;
+      }
+      const id = uid();
+      const baseName = (sourceHousehold.name || "Foyer").trim();
+      const existingNames = new Set((households || []).map(h => (h.name || "").trim().toLowerCase()));
+      let name = `${baseName} (copie)`;
+      let suffix = 2;
+      while (existingNames.has(name.toLowerCase())) {
+        name = `${baseName} (copie ${suffix})`;
+        suffix += 1;
+      }
+      await save(id, JSON.parse(JSON.stringify(sourceState)));
+      setMeta(p => ({
+        ...p,
+        households: [...(p?.households || []), { id, name, created: new Date().toISOString() }]
+      }));
+      toast("Foyer duplique");
+    } catch (e) {
+      toast("Erreur duplication", "err");
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <Card p={18}>
@@ -163,6 +192,7 @@ export default function SettingsFeature({
             <div style={{ flex: 1, minWidth: 0 }}><p style={{ fontSize: 14, fontWeight: h.id === meta?.active ? 700 : 500, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.name}</p>{h.id === meta?.active && <p style={{ fontSize: 11, color: "var(--accent)", margin: 0, fontWeight: 700 }}>Actif</p>}</div>
             <div style={{ display: "flex", gap: 4 }}>
               {h.id !== meta?.active && <Btn sm v="secondary" onClick={() => switchHH(h.id)}>Ouvrir</Btn>}
+              <button onClick={() => duplicateHousehold(h)} style={{ width: 32, height: 32, borderRadius: 9, background: "var(--bg2)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} title="Dupliquer"><Copy size={13} color="var(--text3)" /></button>
               <button onClick={() => { setEditHH(h.id); setEditHHName(h.name); }} style={{ width: 32, height: 32, borderRadius: 9, background: "var(--bg2)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Edit3 size={13} color="var(--text3)" /></button>
               {households.length > 1 && <button onClick={() => setDelHHId(h.id)} style={{ width: 32, height: 32, borderRadius: 9, background: "var(--red2)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={13} color="var(--red)" /></button>}
             </div>
