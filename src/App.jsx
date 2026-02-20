@@ -613,7 +613,17 @@ function MainApp(){
         )}
       </header>
 
-      <main style={{padding:"16px 20px 170px",maxWidth:520,margin:"0 auto",position:"relative",zIndex:1}}>{renderPage()}</main>
+      <main
+        style={{
+          padding:"16px 20px calc(170px + env(safe-area-inset-bottom) + 92px)",
+          maxWidth:520,
+          margin:"0 auto",
+          position:"relative",
+          zIndex:1
+        }}
+      >
+        {renderPage()}
+      </main>
 
       <nav className="sa-bot-nav" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:20,background:"color-mix(in srgb, var(--bg) 88%, transparent)",backdropFilter:"blur(12px)",borderTop:".5px solid var(--sep)"}}>
         <div style={{display:"flex",maxWidth:520,margin:"0 auto"}}>
