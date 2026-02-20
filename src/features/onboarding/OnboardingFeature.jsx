@@ -164,7 +164,7 @@ export default function OnboardingFeature({
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", fontFamily: "Manrope,'Avenir Next','Segoe UI',sans-serif", position: "relative" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", fontFamily: "-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Segoe UI',sans-serif", position: "relative" }}>
       <style>{CSS}</style>
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", background: "radial-gradient(620px 280px at 0% 0%, rgba(195,110,60,.16), transparent 62%),radial-gradient(680px 320px at 100% 0%, rgba(63,121,180,.13), transparent 58%)" }} />
       <div className="sa-top" style={{ padding: "16px 20px", borderBottom: "1px solid var(--sep)", backdropFilter: "blur(10px)", background: "color-mix(in srgb, var(--bg) 90%, transparent)", position: "sticky", top: 0, zIndex: 5 }}>

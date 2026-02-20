@@ -10,6 +10,7 @@ import {
   addLoan,
   addSavingsAccount,
   addSavingsMovement,
+  saveMonthSimulation,
   applyExtraPayment,
   deleteExpense,
   deleteSavingsMovement,
@@ -96,6 +97,53 @@ describe("budgetReducer - savings", () => {
     const next = budgetReducer(state, deleteSavingsMovement("s1", "m1"));
     expect(next.savings[0].movements.map(m => m.id)).toEqual(["m2"]);
     expect(savBalance(next.savings[0])).toBe(950);
+  });
+
+  it("SAVE_MONTH_SIMULATION applies savings contributions to target accounts by contributor", () => {
+    const state = createState();
+    state.savings = [
+      { id: "s-paul", name: "Paul Livret", pid: "P", openingBalance: 1000, movements: [] }
+    ];
+
+    const monthData = {
+      ok: true,
+      alloc: {
+        T: { fc: 0, vc: 0, sav: [{ accId: "s-paul", amount: 100 }], inv: [] },
+        M: { fc: 0, vc: 0, sav: [{ accId: "s-paul", amount: 50 }], inv: [] },
+        P: { fc: 0, vc: 0, sav: [], inv: [] }
+      }
+    };
+
+    const next = budgetReducer(state, saveMonthSimulation("2026-02", monthData));
+    const movements = next.savings[0].movements;
+    expect(movements).toHaveLength(2);
+    expect(movements.map(m => m.contributorId).sort()).toEqual(["M", "T"]);
+    expect(savBalance(next.savings[0])).toBe(1150);
+  });
+
+  it("SAVE_MONTH_SIMULATION replaces previous simulation movements for same month", () => {
+    const state = createState();
+    state.savings = [
+      {
+        id: "s-paul",
+        name: "Paul Livret",
+        pid: "P",
+        openingBalance: 1000,
+        movements: [{ id: "old", source: "simulation", monthKey: "2026-02", amount: 80, type: "credit" }]
+      }
+    ];
+
+    const monthData = {
+      ok: true,
+      alloc: {
+        T: { fc: 0, vc: 0, sav: [{ accId: "s-paul", amount: 120 }], inv: [] }
+      }
+    };
+
+    const next = budgetReducer(state, saveMonthSimulation("2026-02", monthData));
+    expect(next.savings[0].movements).toHaveLength(1);
+    expect(next.savings[0].movements[0].amount).toBe(120);
+    expect(savBalance(next.savings[0])).toBe(1120);
   });
 });
 

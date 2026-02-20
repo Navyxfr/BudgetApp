@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from "react";
+﻿import React, { useState } from "react";
 import {
   Baby,
   Check,
@@ -19,8 +19,6 @@ import {
 import {
   hydrateFromStorage,
   setThemeMode,
-  upsertCategory,
-  archiveCategory,
   addPerson,
   updatePersonName,
   setPersonType,
@@ -43,11 +41,7 @@ export default function SettingsFeature({
   S,
   ps,
   cm,
-  cats,
   COLORS,
-  ICON_KEYS,
-  Ico,
-  Row,
   Btn,
   Card,
   EditableName,
@@ -64,8 +58,6 @@ export default function SettingsFeature({
   authUser,
   setAuthUser
 }) {
-  const [showCat, setShowCat] = useState(null);
-  const [catForm, setCatForm] = useState({ name: "", icon: "ShoppingCart", color: COLORS[0] });
   const [newHHName, setNewHHName] = useState("");
   const [showNewHH, setShowNewHH] = useState(false);
   const [copyCharges, setCopyCharges] = useState(true);
@@ -76,20 +68,8 @@ export default function SettingsFeature({
   const [removePersonId, setRemovePersonId] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
 
-  const saveCat = () => {
-    if (!catForm.name) return;
-    if (showCat === "new") {
-      dispatch(upsertCategory({ name: catForm.name, icon: catForm.icon, color: catForm.color, o: S.cfg.categories.length }));
-    } else {
-      dispatch(upsertCategory({ id: showCat, name: catForm.name, icon: catForm.icon, color: catForm.color }));
-    }
-    toast(showCat === "new" ? "Creee" : "Modifiee");
-    setShowCat(null);
-  };
-
   const households = meta?.households || [];
   const activeHH = households.find(h => h.id === meta?.active);
-  const sortedCats = useMemo(() => [...cats].sort((a, b) => (a.o || 0) - (b.o || 0)), [cats]);
   const sectionLabelStyle = { fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.7, margin: "4px 2px -8px" };
 
   const handleImport = async e => {
@@ -204,11 +184,6 @@ export default function SettingsFeature({
         <p style={{ fontSize: 11, color: "var(--text3)", margin: "10px 0 0", lineHeight: 1.4 }}>Les adultes ont des revenus et participent au prorata. Les enfants peuvent avoir des comptes d'epargne/investissement sans revenu.</p>
       </Card>
 
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}><p style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Categories</p><button onClick={() => { setCatForm({ name: "", icon: "ShoppingCart", color: COLORS[cats.length % COLORS.length] }); setShowCat("new"); }} style={{ width: 34, height: 34, borderRadius: 10, background: "var(--bg2)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Plus size={16} color="var(--text3)" /></button></div>
-        {sortedCats.map(c => <Row key={c.id} onClick={() => { setCatForm({ name: c.name, icon: c.icon, color: c.color }); setShowCat(c.id); }} icon={<Ico name={c.icon} size={15} color={c.color} />} iconBg={c.color + "12"} left={c.name} />)}
-      </Card>
-
       <p style={sectionLabelStyle}>Sauvegarde et transfert</p>
       <Card>
         <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 12px" }}>Export</p>
@@ -229,16 +204,6 @@ export default function SettingsFeature({
         <p style={{ fontSize: 11, color: "var(--text4)", margin: "10px 0 0" }}>V4.1 · Multi-foyers · Stockage local</p>
       </Card>
 
-      <Modal open={!!showCat} onClose={() => setShowCat(null)} title={showCat === "new" ? "Nouvelle" : "Modifier"}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <Inp label="Nom" value={catForm.name} onChange={e => setCatForm({ ...catForm, name: e.target.value })} />
-          <div><p style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px" }}>Icone</p><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{ICON_KEYS.map(n => <button key={n} onClick={() => setCatForm({ ...catForm, icon: n })} style={{ width: 40, height: 40, borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: catForm.icon === n ? "var(--accent)" : "var(--bg2)", cursor: "pointer" }}><Ico name={n} size={17} color={catForm.icon === n ? "#fff" : "var(--text3)"} /></button>)}</div></div>
-          <div><p style={{ fontSize: 11, fontWeight: 600, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px" }}>Couleur</p><div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{COLORS.map(c => <button key={c} onClick={() => setCatForm({ ...catForm, color: c })} style={{ width: 30, height: 30, borderRadius: 15, background: c, border: "none", cursor: "pointer", outline: catForm.color === c ? "3px solid var(--accent)" : "none", outlineOffset: 2 }} />)}</div></div>
-          <Btn full onClick={saveCat}>{showCat === "new" ? "Creer" : "Modifier"}</Btn>
-          {showCat !== "new" && <Btn v="danger" full onClick={() => { dispatch(archiveCategory(showCat)); toast("Archivee"); setShowCat(null); }}>Archiver</Btn>}
-        </div>
-      </Modal>
-
       <Modal open={showNewHH} onClose={() => setShowNewHH(false)} title="Nouveau foyer">
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Inp label="Nom du foyer" value={newHHName} onChange={e => setNewHHName(e.target.value)} placeholder="Ex: Maison secondaire" />
@@ -255,3 +220,4 @@ export default function SettingsFeature({
     </div>
   );
 }
+

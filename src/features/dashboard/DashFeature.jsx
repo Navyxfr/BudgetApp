@@ -225,8 +225,8 @@ export default function DashFeature({
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <KPI label="Epargne" value={eur(tSav)} color="var(--green)" onClick={() => setPage("sav")} />
-            <KPI label="Invest." value={eur(tInv)} color="var(--blue)" onClick={() => { setPage("more"); setSub("inv"); }} />
+            <KPI label="Epargne" value={eur(tSav)} color="var(--green)" onClick={() => { setPage("wealth"); setSub("sav"); }} />
+            <KPI label="Invest." value={eur(tInv)} color="var(--blue)" onClick={() => { setPage("wealth"); setSub("inv"); }} />
           </div>
           {chartData.length > 0 && (
             <Card>

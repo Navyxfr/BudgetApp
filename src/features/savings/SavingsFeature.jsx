@@ -39,6 +39,34 @@ export default function SavingsFeature({
 
   const accs = S.savings.filter(a => !a.ar);
   const total = accs.reduce((s, a) => s + savBalance(a), 0);
+  const personById = Object.fromEntries((ps || []).map(p => [p.id, p]));
+
+  const movementSignedAmount = movement => {
+    const amount = Number(movement?.amount || 0);
+    const type = String(movement?.type || "").toLowerCase();
+    if (type === "debit" || type === "withdrawal") return -Math.abs(amount);
+    if (type === "credit" || type === "deposit") return Math.abs(amount);
+    return amount;
+  };
+
+  const movementLabel = movement => {
+    if (movement?.source === "simulation") {
+      const contributorName = personById[movement?.contributorId]?.name;
+      return contributorName ? `Simulation · ${contributorName}` : "Simulation";
+    }
+    const type = String(movement?.type || "").toLowerCase();
+    if (type === "debit" || type === "withdrawal") return "Retrait manuel";
+    if (type === "credit" || type === "deposit") return "Versement manuel";
+    return "Mouvement";
+  };
+
+  const movementDate = movement => {
+    const raw = movement?.date;
+    if (!raw) return "";
+    const dt = new Date(raw);
+    if (Number.isNaN(dt.getTime())) return String(raw);
+    return dt.toLocaleDateString("fr-FR");
+  };
 
   const doSave = () => {
     if (!form.name) return;
@@ -97,6 +125,28 @@ export default function SavingsFeature({
                 </div>
               );
             })}
+            {(a.movements || []).length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: 0.6, margin: "0 0 8px" }}>Mouvements</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {[...(a.movements || [])]
+                    .sort((m1, m2) => String(m2.date || "").localeCompare(String(m1.date || "")))
+                    .slice(0, 6)
+                    .map(m => {
+                      const signed = movementSignedAmount(m);
+                      return (
+                        <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 10px", borderRadius: 10, background: "var(--bg2)" }}>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 12, color: "var(--text2)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{movementLabel(m)}</p>
+                            <p style={{ margin: 0, fontSize: 11, color: "var(--text3)" }}>{movementDate(m)}</p>
+                          </div>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: signed >= 0 ? "var(--green)" : "var(--red)" }}>{eur(signed)}</span>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
             <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               <Btn sm v="secondary" onClick={() => setMovId(a.id)}><Plus size={13} />Mouvement</Btn>
               <Btn sm v="secondary" onClick={() => setObjId(a.id)}><Target size={13} />Objectif</Btn>

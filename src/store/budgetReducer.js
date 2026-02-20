@@ -15,6 +15,8 @@ const ensureMonth = (state, monthKey) => {
   return { exp: [], charges: [] };
 };
 
+const firstDayFromMonthKey = monthKey => `${String(monthKey || "")}-01`;
+
 const normalizeSavingsAccount = account => {
   if (!account) return account;
   const openingBalance = Number(account.openingBalance ?? account.balance ?? 0);
@@ -254,8 +256,54 @@ export function budgetReducer(state, action) {
       if (!state) return state;
       const { monthKey, monthData } = action.payload || {};
       if (!monthKey || !monthData) return state;
+      const ts = today();
+      const allocByPerson = monthData.alloc || {};
+      const savingsById = new Map((state.savings || []).map(a => [a.id, a]));
+      const incomingByAccount = new Map();
+
+      for (const [contributorId, alloc] of Object.entries(allocByPerson)) {
+        const savEntries = alloc?.sav || [];
+        for (const entry of savEntries) {
+          const amount = Number(entry?.amount || 0);
+          const accId = entry?.accId;
+          if (!accId || amount <= 0) continue;
+          if (!savingsById.has(accId)) continue;
+          const list = incomingByAccount.get(accId) || [];
+          list.push({ contributorId, amount });
+          incomingByAccount.set(accId, list);
+        }
+      }
+
+      const savings = (state.savings || []).map(account => {
+        const baseMovements = (account.movements || []).filter(
+          m => !(m?.source === "simulation" && m?.monthKey === monthKey)
+        );
+        const incoming = incomingByAccount.get(account.id) || [];
+        if (incoming.length === 0) {
+          if (baseMovements.length === (account.movements || []).length) return account;
+          return { ...account, movements: baseMovements, updatedAt: ts };
+        }
+        const simMovements = incoming.map(item => ({
+          id: generateId(),
+          type: "credit",
+          amount: Number(item.amount),
+          date: firstDayFromMonthKey(monthKey),
+          source: "simulation",
+          monthKey,
+          contributorId: item.contributorId,
+          createdAt: ts,
+          updatedAt: ts
+        }));
+        return {
+          ...account,
+          movements: [...baseMovements, ...simMovements],
+          updatedAt: ts
+        };
+      });
+
       return {
         ...state,
+        savings,
         months: {
           ...(state.months || {}),
           [monthKey]: monthData
