@@ -6,6 +6,35 @@ const deepClone = value => {
   return JSON.parse(JSON.stringify(value));
 };
 
+const ensureSimulationMonthShape = (monthData, adults, persons, uid) => {
+  const next = deepClone(monthData || {});
+  next.rev = Array.isArray(next.rev) ? next.rev : [];
+  next.alloc = next.alloc && typeof next.alloc === "object" ? next.alloc : {};
+
+  for (const person of persons || []) {
+    if (!next.alloc[person.id]) next.alloc[person.id] = { fc: 0, vc: 0, sav: [], inv: [] };
+  }
+
+  const existingRevPids = new Set(
+    next.rev
+      .filter(r => (r?.type || "salary") !== "aid" && r?.pid)
+      .map(r => r.pid)
+  );
+  for (const adult of adults || []) {
+    if (!existingRevPids.has(adult.id)) {
+      next.rev.push({
+        id: uid(),
+        label: "Salaire " + adult.name,
+        amount: 0,
+        pid: adult.id,
+        type: "salary"
+      });
+    }
+  }
+
+  return next;
+};
+
 export default function SimulationFeature({
   S,
   cm,
@@ -36,7 +65,9 @@ export default function SimulationFeature({
   const personById = Object.fromEntries(ps.map(p => [p.id, p]));
 
   const [st, setSt] = useState(0);
-  const [w, setW] = useState(() => deepClone(getMonth(S, cm, monthAggDeps)));
+  const [w, setW] = useState(() =>
+    ensureSimulationMonthShape(getMonth(S, cm, monthAggDeps), adults, ps, uid)
+  );
   const STEPS = ["Revenus", "Charges", "Depenses", "Epargne", "Invest.", "Virements"];
 
   const tr = sumRev(w);
@@ -153,6 +184,24 @@ export default function SimulationFeature({
                   <input type="number" inputMode="decimal" value={r.amount || ""} onChange={e => setW(p => ({ ...p, rev: p.rev.map(x => (x.id === r.id ? { ...x, amount: parseFloat(e.target.value) || 0 } : x)) }))} placeholder="0" style={{ flex: 1, background: "var(--card)", border: "1.5px solid var(--sep)", borderRadius: 10, padding: "8px 12px", fontSize: 14, fontWeight: 600, color: "var(--text)", outline: "none", textAlign: "right" }} />
                   <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text3)" }}>EUR</span>
                 </div>
+                {r.type !== "aid" && (
+                  <div style={{ marginTop: 8 }}>
+                    <select
+                      value={r.pid || adults[0]?.id || ""}
+                      onChange={e =>
+                        setW(p => ({
+                          ...p,
+                          rev: p.rev.map(x => (x.id === r.id ? { ...x, pid: e.target.value || null } : x))
+                        }))
+                      }
+                      style={{ width: "100%", background: "var(--card)", border: "1.5px solid var(--sep)", borderRadius: 10, padding: "8px 12px", fontSize: 13, fontWeight: 600, color: "var(--text)", outline: "none" }}
+                    >
+                      {adults.map(a => (
+                        <option key={a.id} value={a.id}>{a.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             ))}
             <div style={{ display: "flex", gap: 8 }}>
