@@ -1,4 +1,5 @@
 ﻿import React, { Suspense, lazy, useState, useEffect, useCallback, createContext, useContext, useMemo, useReducer } from "react";
+import { createPortal } from "react-dom";
 import {
   Home, Receipt, CreditCard, PiggyBank, ChevronLeft,
   ChevronRight, Plus, X, Check, AlertTriangle, TrendingUp, Wallet,
@@ -214,7 +215,7 @@ function Sel({label,options,value,onChange}){
 
 function Modal({open,onClose,title,children}){
   if(!open)return null;
-  return(
+  const modalNode=(
     <div style={{position:"fixed",inset:0,zIndex:50,display:"flex",alignItems:"flex-end",justifyContent:"center",animation:"fadeIn .2s ease"}}>
       <div style={{position:"absolute",inset:0,background:"rgba(20,18,15,.3)",backdropFilter:"blur(12px)"}} onClick={onClose}/>
       <div style={{position:"relative",background:"var(--card)",borderRadius:"28px 28px 0 0",width:"100%",maxWidth:440,maxHeight:"88vh",display:"flex",flexDirection:"column",overflow:"hidden",animation:"modalUp .38s cubic-bezier(.32,.72,0,1)"}}>
@@ -226,6 +227,8 @@ function Modal({open,onClose,title,children}){
       </div>
     </div>
   );
+  if(typeof document==="undefined")return modalNode;
+  return createPortal(modalNode,document.body);
 }
 
 function ConfirmDialog({open,onClose,onOk,msg}){
@@ -625,6 +628,7 @@ function MainApp(){
     </div>
   );
 }
+
 
 
 
