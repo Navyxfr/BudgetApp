@@ -2,8 +2,8 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
-  plugins: [
+export default defineConfig(async ({ mode }) => {
+  const plugins = [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -38,4 +38,30 @@ export default defineConfig({
       }
     })
   ]
+
+  if (mode === 'report') {
+    try {
+      const { visualizer } = await import('rollup-plugin-visualizer')
+      plugins.push(
+        visualizer({
+          filename: 'dist/bundle-report.html',
+          open: false,
+          gzipSize: true,
+          brotliSize: true
+        })
+      )
+    } catch {
+      console.warn('[bundle-report] rollup-plugin-visualizer non installe: rapport non genere.')
+    }
+  }
+
+  return {
+    plugins,
+    server: {
+      allowedHosts: ['.ngrok-free.dev', '.ngrok-free.app']
+    },
+    preview: {
+      allowedHosts: ['.ngrok-free.dev', '.ngrok-free.app']
+    }
+  }
 })
