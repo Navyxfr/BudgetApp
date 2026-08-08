@@ -42,34 +42,6 @@ export function defaultMonth(k, state, deps) {
   const cats = (state?.cfg?.categories || []).filter(c => !c.ar);
   const ps = state?.cfg?.persons || [{ id: "A", name: "A", type: "adult" }];
   const adults = ps.filter(p => (p.type || "adult") === "adult");
-  const months = state?.months || {};
-  const sorted = Object.keys(months).filter(m => m < k).sort();
-  const prev = sorted.length > 0 ? months[sorted[sorted.length - 1]] : null;
-
-  if (prev && prev.ok) {
-    return {
-      ok: false,
-      rev: (prev.rev || []).map(r => ({ ...r, id: uid() })),
-      charges: (state?.loans || [])
-        .filter(l => !l.ar)
-        .map(l => {
-          const m = loanMonths(l.s, l.e);
-          return {
-            id: uid(),
-            name: l.name,
-            amount: l.ac ? calcMP(l.cap, l.rate, m.t) : l.mp,
-            freq: "monthly",
-            lid: l.id,
-            auto: true
-          };
-        })
-        .concat((prev.charges || []).filter(c => !c.auto).map(c => ({ ...c, id: uid() }))),
-      alloc: Object.fromEntries(ps.map(p => [p.id, { fc: 0, vc: 0, sav: [], inv: [] }])),
-      cb: (prev.cb || []).map(b => ({ ...b })),
-      exp: []
-    };
-  }
-
   return {
     ok: false,
     rev: adults.map(p => ({ id: uid(), label: "Salaire " + p.name, amount: 0, pid: p.id, type: "salary" })),

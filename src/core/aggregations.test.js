@@ -55,7 +55,7 @@ describe("aggregations", () => {
     expect(Array.isArray(md.charges)).toBe(true);
   });
 
-  test("defaultMonth carries forward previous validated month", () => {
+  test("defaultMonth never carries planning from a previous validated month", () => {
     const state = {
       cfg: { persons: [{ id: "A", name: "A", type: "adult" }], categories: [] },
       loans: [],
@@ -67,6 +67,7 @@ describe("aggregations", () => {
     const md = defaultMonth("2026-02", state, deps);
     expect(md.ok).toBe(false);
     expect(md.rev.length).toBe(1);
-    expect(md.charges.length).toBe(1);
+    expect(md.rev[0].amount).toBe(0);
+    expect(md.charges).toEqual([]);
   });
 });

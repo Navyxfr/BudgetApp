@@ -6,6 +6,7 @@ import {
   importBudget,
   mergeFromCloud,
   addExpense,
+  createMonth,
   addFixedCharge,
   addLoan,
   addSavingsAccount,
@@ -196,7 +197,24 @@ describe("budgetReducer meta actions", () => {
     legacy.savings = [{ id: "s1", name: "Legacy", balance: 500, movements: [] }];
     const hydrated = budgetReducer(null, hydrateFromStorage(legacy));
     expect(hydrated.savings[0].openingBalance).toBe(500);
-    expect(hydrated.dataVersion).toBeGreaterThanOrEqual(2);
+    expect(hydrated.dataVersion).toBeGreaterThanOrEqual(3);
+  });
+
+  it("CREATE_MONTH persists an absent month and makes it active", () => {
+    const state = createState();
+    const september = { ok: false, preparationMode: "empty", rev: [], charges: [], cb: [], exp: [] };
+    const next = budgetReducer(state, createMonth("2026-09", september));
+
+    expect(next.activeMonth).toBe("2026-09");
+    expect(next.months["2026-09"]).toEqual(september);
+  });
+
+  it("CREATE_MONTH never overwrites an existing month", () => {
+    const state = createState();
+    const next = budgetReducer(state, createMonth("2026-02", { exp: [{ id: "unexpected" }] }));
+
+    expect(next).toBe(state);
+    expect(next.months["2026-02"].exp).toEqual([]);
   });
 
   it("IMPORT_BUDGET replace fully replaces state", () => {
