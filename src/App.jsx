@@ -44,7 +44,7 @@ import {
   loanMonths
 } from "./core/financial.js";
 import { clamp, eur, pct } from "./core/formatters.js";
-import { getMonthStatus } from "./core/months.js";
+import { getMonthStatus, listImportableMonths } from "./core/months.js";
 
 const SimulationFeature = lazy(() => import("./features/simulation/SimulationFeature.jsx"));
 const AnnualFeature = lazy(() => import("./features/annual/AnnualFeature.jsx"));
@@ -599,7 +599,7 @@ function MainApp(){
         </Suspense>
       )}
 
-      <MonthPreparationModal pendingMonth={pendingMonth} onChoose={prepareMonth} onClose={cancelPreparation} Modal={Modal} Btn={Btn}/>
+      <MonthPreparationModal pendingMonth={pendingMonth} importableMonths={listImportableMonths(S,pendingMonth?.targetMonth)} onChoose={prepareMonth} onClose={cancelPreparation} Modal={Modal} Btn={Btn}/>
 
       <header className="sa-top" style={{position:"sticky",top:0,zIndex:20,background:"color-mix(in srgb, var(--bg) 90%, transparent)",backdropFilter:"blur(12px)",borderBottom:".5px solid var(--sep)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 20px"}}>
@@ -648,4 +648,3 @@ function MainApp(){
     </div>
   );
 }
-

@@ -35,17 +35,17 @@ export function useMonthNavigation({
   );
 
   const prepareMonth = useCallback(
-    mode => {
+    (mode, selectedSourceMonth) => {
       if (!pendingMonth) return;
-      const { sourceMonth, targetMonth } = pendingMonth;
+      const { targetMonth } = pendingMonth;
       const monthData =
         mode === "copy"
-          ? duplicateMonth(sourceMonth, targetMonth, state, monthDependencies)
+          ? duplicateMonth(selectedSourceMonth, targetMonth, state, monthDependencies)
           : createEmptyMonth(targetMonth, state, monthDependencies);
       dispatch(createMonth(targetMonth, monthData));
       setCurrentMonth(targetMonth);
       setPendingMonth(null);
-      notify?.(mode === "copy" ? "Organisation du mois reprise" : "Nouveau mois créé");
+      notify?.(mode === "copy" ? "Données du mois importées" : "Nouveau mois créé");
     },
     [dispatch, monthDependencies, notify, pendingMonth, setCurrentMonth, state]
   );

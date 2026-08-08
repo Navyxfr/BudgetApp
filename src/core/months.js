@@ -102,3 +102,12 @@ export function getMonthStatus(month) {
     (month.cb || []).some(item => Number(item.budget || 0) > 0);
   return hasPlanning || (month.exp || []).length > 0 ? "prepared" : "empty";
 }
+
+export function listImportableMonths(state, targetMonthKey) {
+  return Object.entries(state?.months || {})
+    .filter(([monthKey, month]) =>
+      monthKey !== targetMonthKey && ["prepared", "completed"].includes(getMonthStatus(month))
+    )
+    .map(([monthKey, month]) => ({ monthKey, status: getMonthStatus(month) }))
+    .sort((a, b) => b.monthKey.localeCompare(a.monthKey));
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyMonth, duplicateMonth, getMonthStatus, hasStoredMonth } from "./months.js";
+import { createEmptyMonth, duplicateMonth, getMonthStatus, hasStoredMonth, listImportableMonths } from "./months.js";
 
 const makeDeps = () => {
   let nextId = 0;
@@ -101,5 +101,22 @@ describe("month preparation", () => {
     expect(getMonthStatus(state.months["2026-08"])).toBe("completed");
     expect(getMonthStatus(createEmptyMonth("2026-09", state, makeDeps()))).toBe("empty");
     expect(getMonthStatus(undefined)).toBe("missing");
+  });
+
+  it("lists only filled months as import sources, newest first", () => {
+    const state = makeState();
+    state.months["2026-06"] = createEmptyMonth("2026-06", state, makeDeps());
+    state.months["2026-07"] = {
+      ...createEmptyMonth("2026-07", state, makeDeps()),
+      cb: [{ cid: "food", budget: 300 }]
+    };
+    state.months["2026-09"] = { ...state.months["2026-08"], ok: false };
+
+    expect(listImportableMonths(state, "2026-10")).toEqual([
+      { monthKey: "2026-09", status: "prepared" },
+      { monthKey: "2026-08", status: "completed" },
+      { monthKey: "2026-07", status: "prepared" }
+    ]);
+    expect(listImportableMonths(state, "2026-09").some(item => item.monthKey === "2026-09")).toBe(false);
   });
 });
