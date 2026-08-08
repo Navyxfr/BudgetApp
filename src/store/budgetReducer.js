@@ -3,7 +3,7 @@ import { nowKey, today } from "../core/date.js";
 import { calcMonthlyPayment, loanMonths } from "../core/financial.js";
 import { BUDGET_ACTIONS } from "./actions.js";
 
-const DATA_VERSION = 2;
+export const DATA_VERSION = 3;
 
 const generateId = () =>
   typeof crypto !== "undefined" && crypto.randomUUID
@@ -36,7 +36,7 @@ const migrateState = input => {
     ...input,
     savings,
     activeMonth: input.activeMonth || nowKey(),
-    dataVersion: Number(input.dataVersion || DATA_VERSION)
+    dataVersion: Math.max(Number(input.dataVersion || 0), DATA_VERSION)
   };
 };
 
@@ -161,6 +161,16 @@ export function budgetReducer(state, action) {
       const month = action.payload?.month;
       if (!month) return state;
       return { ...state, activeMonth: month };
+    }
+    case BUDGET_ACTIONS.CREATE_MONTH: {
+      if (!state) return state;
+      const { monthKey, monthData } = action.payload || {};
+      if (!monthKey || !monthData || state.months?.[monthKey]) return state;
+      return {
+        ...state,
+        activeMonth: monthKey,
+        months: { ...(state.months || {}), [monthKey]: monthData }
+      };
     }
     case BUDGET_ACTIONS.SET_THEME_MODE: {
       if (!state) return state;

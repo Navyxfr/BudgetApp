@@ -7,7 +7,7 @@ import {
   Target, ShoppingCart, Car, Baby, Dog, Scissors, Gamepad2,
   Utensils, Zap, Heart, BookOpen, Plane, Gift, Wrench, Smartphone,
   Music, Coffee, Briefcase, Landmark, Users, DollarSign,
-  Shield, Star, RotateCcw, Play, Download, Upload, Copy, Tag, Cloud, CloudOff, LogIn, LogOut
+  Shield, Star, RotateCcw, Play, Download, Upload, Tag, Cloud, CloudOff, LogIn, LogOut
 } from "lucide-react";
 import ExpensesFeature from "./features/expenses/ExpensesFeature.jsx";
 import SavingsFeature from "./features/savings/SavingsFeature.jsx";
@@ -16,6 +16,8 @@ import MetaFeature from "./features/meta/MetaFeature.jsx";
 import InvestmentsFeature from "./features/investments/InvestmentsFeature.jsx";
 import DashFeature from "./features/dashboard/DashFeature.jsx";
 import OnboardingFeature from "./features/onboarding/OnboardingFeature.jsx";
+import MonthPreparationModal from "./features/months/MonthPreparationModal.jsx";
+import { useMonthNavigation } from "./features/months/useMonthNavigation.js";
 import { budgetReducer } from "./store/budgetReducer.js";
 import {
   hydrateFromStorage,
@@ -42,6 +44,7 @@ import {
   loanMonths
 } from "./core/financial.js";
 import { clamp, eur, pct } from "./core/formatters.js";
+import { getMonthStatus } from "./core/months.js";
 
 const SimulationFeature = lazy(() => import("./features/simulation/SimulationFeature.jsx"));
 const AnnualFeature = lazy(() => import("./features/annual/AnnualFeature.jsx"));
@@ -222,10 +225,10 @@ function Modal({open,onClose,title,children}){
   const modalNode=(
     <div style={{position:"fixed",inset:0,zIndex:50,display:"flex",alignItems:"flex-end",justifyContent:"center",animation:"fadeIn .2s ease"}}>
       <div style={{position:"absolute",inset:0,background:"rgba(20,18,15,.3)",backdropFilter:"blur(12px)"}} onClick={onClose}/>
-      <div style={{position:"relative",background:"var(--card)",borderRadius:"28px 28px 0 0",width:"100%",maxWidth:440,maxHeight:"88vh",display:"flex",flexDirection:"column",overflow:"hidden",animation:"modalUp .38s cubic-bezier(.32,.72,0,1)"}}>
+      <div role="dialog" aria-modal="true" aria-label={title} style={{position:"relative",background:"var(--card)",borderRadius:"28px 28px 0 0",width:"100%",maxWidth:440,maxHeight:"88vh",display:"flex",flexDirection:"column",overflow:"hidden",animation:"modalUp .38s cubic-bezier(.32,.72,0,1)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 22px 16px",borderBottom:"1px solid var(--sep)"}}>
           <h3 style={{fontSize:17,fontWeight:700,color:"var(--text)",margin:0,letterSpacing:-.3}}>{title}</h3>
-          <button onClick={onClose} style={{width:30,height:30,borderRadius:15,background:"var(--bg2)",border:"none",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><X size={14} color="var(--text3)"/></button>
+          <button aria-label="Fermer" onClick={onClose} style={{width:30,height:30,borderRadius:15,background:"var(--bg2)",border:"none",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><X size={14} color="var(--text3)"/></button>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:22}}>{children}</div>
       </div>
@@ -362,8 +365,9 @@ function MainApp(){
     });
     return ()=>{if(unsubAuth)unsubAuth();if(unsubSync)unsubSync();if(unsubAuthErr)unsubAuthErr();};
   },[reloadAll]);
-  useEffect(()=>{if(S&&meta?.active&&!loading)save(meta.active,S);},[S,loading]);
+  useEffect(()=>{if(S&&meta?.active&&!loading)save(meta.active,S);},[S,meta?.active,loading]);
   useEffect(()=>{if(meta&&!loading)saveMeta(meta);},[meta,loading]);
+  useEffect(()=>{if(S?.activeMonth&&S.activeMonth!==cm)setCm(S.activeMonth);},[S?.activeMonth]);
 
   const switchHH=async id=>{
     if(S&&meta?.active)await save(meta.active,S);
@@ -394,7 +398,7 @@ function MainApp(){
   );
   const cats=(S?.cfg?.categories||[]).filter(c=>!c.ar);
   const ps=S?.cfg?.persons||[];
-  const nav=d=>{const n=addMonths(cm,d);if(canNav(n))setCm(n);};
+  const {pendingMonth,navigate:nav,prepareMonth,cancelPreparation}=useMonthNavigation({currentMonth:cm,setCurrentMonth:setCm,state:S,dispatch,monthDependencies:monthAggDeps,notify:toast});
 
   if(loading)return (<div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center"}}><style>{CSS}</style><div style={{width:36,height:36,borderRadius:12,background:"var(--accent)"}}/></div>);
 
@@ -595,6 +599,8 @@ function MainApp(){
         </Suspense>
       )}
 
+      <MonthPreparationModal pendingMonth={pendingMonth} onChoose={prepareMonth} onClose={cancelPreparation} Modal={Modal} Btn={Btn}/>
+
       <header className="sa-top" style={{position:"sticky",top:0,zIndex:20,background:"color-mix(in srgb, var(--bg) 90%, transparent)",backdropFilter:"blur(12px)",borderBottom:".5px solid var(--sep)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 20px"}}>
           <div style={{width:96,display:"flex",alignItems:"center",gap:6}}>
@@ -613,7 +619,7 @@ function MainApp(){
           </div>
         </div>
         {["dash","exp","plan"].includes(activePage) && (
-          <MetaFeature mode="monthNav" activePage={activePage} monthLabelText={monthLabel(cm)} onPrevMonth={()=>nav(-1)} onNextMonth={()=>nav(1)} canGoNextMonth={canNav(nextMonth)}/>
+          <MetaFeature mode="monthNav" activePage={activePage} monthLabelText={monthLabel(cm)} monthStatus={getMonthStatus(S?.months?.[cm])} onPrevMonth={()=>nav(-1)} onNextMonth={()=>nav(1)} canGoNextMonth={canNav(nextMonth)}/>
         )}
       </header>
 
@@ -642,7 +648,4 @@ function MainApp(){
     </div>
   );
 }
-
-
-
 

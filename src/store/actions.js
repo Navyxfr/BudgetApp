@@ -5,6 +5,7 @@ export const BUDGET_ACTIONS = {
   RESET_FOYER: "meta/resetFoyer",
   MIGRATE_DATA_VERSION: "meta/migrateDataVersion",
   SET_ACTIVE_MONTH: "meta/setActiveMonth",
+  CREATE_MONTH: "months/createMonth",
   SET_THEME_MODE: "meta/setThemeMode",
   UPSERT_CATEGORY: "meta/upsertCategory",
   DELETE_CATEGORY: "meta/deleteCategory",
@@ -66,6 +67,11 @@ export const migrateDataVersion = dataVersion => ({
 export const setActiveMonth = month => ({
   type: BUDGET_ACTIONS.SET_ACTIVE_MONTH,
   payload: { month }
+});
+
+export const createMonth = (monthKey, monthData) => ({
+  type: BUDGET_ACTIONS.CREATE_MONTH,
+  payload: { monthKey, monthData }
 });
 
 export const setThemeMode = mode => ({
