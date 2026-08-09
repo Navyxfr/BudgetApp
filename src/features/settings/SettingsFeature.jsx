@@ -38,6 +38,7 @@ export default function SettingsFeature({
   switchHH,
   createHH,
   deleteHH,
+  deleteAllHH,
   renameHH,
   S,
   ps,
@@ -69,6 +70,7 @@ export default function SettingsFeature({
   const [showImport, setShowImport] = useState(false);
   const [removePersonId, setRemovePersonId] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
 
   const households = meta?.households || [];
   const activeHH = households.find(h => h.id === meta?.active);
@@ -231,6 +233,9 @@ export default function SettingsFeature({
           <p style={{ fontSize: 11, fontWeight: 700, color: "var(--red)", textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px" }}>Danger</p>
           <p style={{ fontSize: 12, color: "var(--text2)", margin: "0 0 12px" }}>Cette action supprime toutes les donnees du foyer actif.</p>
           <Btn v="danger" sm onClick={() => setConfirmReset(true)}>Reinitialiser ce foyer</Btn>
+          <div style={{ height: 1, background: "var(--red2)", margin: "14px 0" }} />
+          <p style={{ fontSize: 12, color: "var(--text2)", margin: "0 0 12px" }}>Supprime définitivement tous les foyers, sur cet appareil et dans la synchronisation cloud.</p>
+          <Btn v="danger" sm onClick={() => setConfirmDeleteAll(true)}>Supprimer tous les foyers</Btn>
         </div>
         <p style={{ fontSize: 11, color: "var(--text4)", margin: "10px 0 0" }}>V4.1 · Multi-foyers · Stockage local</p>
       </Card>
@@ -254,10 +259,10 @@ export default function SettingsFeature({
       <ConfirmDialog open={!!delHHId} onClose={() => setDelHHId(null)} onOk={() => { deleteHH(delHHId); toast("Foyer supprime"); }} msg="Supprimer definitivement ce foyer et toutes ses donnees ?" />
       <ConfirmDialog open={!!removePersonId} onClose={() => setRemovePersonId(null)} onOk={() => { dispatch(removePerson(removePersonId)); toast("Personne retiree"); }} msg="Retirer cette personne du foyer ?" />
       <ConfirmDialog open={confirmReset} onClose={() => setConfirmReset(false)} onOk={() => { dispatch(resetFoyer()); toast("Reinitialise"); }} msg="Supprimer toutes les donnees du foyer actif ?" />
+      <ConfirmDialog open={confirmDeleteAll} onClose={() => setConfirmDeleteAll(false)} onOk={async () => { await deleteAllHH(); toast("Tous les foyers ont été supprimés"); }} msg="Supprimer définitivement tous les foyers et toutes leurs données ? Cette action sera synchronisée dans le cloud." />
     </div>
   );
 }
-
 
 
 

@@ -15,7 +15,7 @@ import LoansFeature from "./features/loans/LoansFeature.jsx";
 import MetaFeature from "./features/meta/MetaFeature.jsx";
 import InvestmentsFeature from "./features/investments/InvestmentsFeature.jsx";
 import DashFeature from "./features/dashboard/DashFeature.jsx";
-import OnboardingFeature from "./features/onboarding/OnboardingFeature.jsx";
+import EmptyHouseholdsFeature from "./features/households/EmptyHouseholdsFeature.jsx";
 import MonthPreparationModal from "./features/months/MonthPreparationModal.jsx";
 import { useMonthNavigation } from "./features/months/useMonthNavigation.js";
 import { budgetReducer } from "./store/budgetReducer.js";
@@ -37,7 +37,8 @@ import {
   savBalance
 } from "./core/aggregations.js";
 import { addMonths, canNav, monthLabel, nowKey, parseMonthKey, today } from "./core/date.js";
-import { defaultCats, defaultState } from "./core/defaults.js";
+import { defaultState } from "./core/defaults.js";
+import { clearHouseholdsMeta, createBlankHouseholdState } from "./core/households.js";
 import {
   calcMonthlyPayment as calcMP,
   calcRemainingDebt as calcCRD,
@@ -338,30 +339,35 @@ function MainApp(){
   const[wiz,setWiz]=useState(false);
   const[authUser,setAuthUser]=useState(window.firebaseAuth?.user||null);
   const[syncing,setSyncing]=useState(false);
+  const[accountDataReady,setAccountDataReady]=useState(false);
 
   /* Reload all state from storage */
   const reloadAll=useCallback(async()=>{
     let m=await loadMeta();
-    if(!m){const mig=await migrateOld();if(mig){m=mig.meta;dispatch(hydrateFromStorage(mig.data));setMeta(m);return;}}
-    if(!m)return;
+    if(!m){const mig=await migrateOld();if(mig){m=mig.meta;dispatch(hydrateFromStorage(mig.data));setMeta(m);return true;}}
+    if(!m)return false;
     setMeta(m);
     if(m.active){const d=await load(m.active);dispatch(hydrateFromStorage(d));}
+    else dispatch(hydrateFromStorage(null));
+    return true;
   },[]);
 
   useEffect(()=>{
     (async()=>{
-      await reloadAll();
+      const hasLocalData=await reloadAll();
+      if(hasLocalData)setAccountDataReady(true);
       setLoading(false);
     })();
     /* Listen for auth changes */
-    const unsubAuth=window.firebaseAuth?.onAuthChange?.(user=>{setAuthUser(user);});
+    const unsubAuth=window.firebaseAuth?.onAuthChange?.(user=>{setAuthUser(user);if(!user)setAccountDataReady(false);});
     /* Listen for sync events (cloud â†’ local pull done) */
-    const unsubSync=window.firebaseAuth?.onSync?.(async()=>{setSyncing(true);await reloadAll();setSyncing(false);});
+    const unsubSync=window.firebaseAuth?.onSync?.(async()=>{setSyncing(true);await reloadAll();setAccountDataReady(true);setSyncing(false);});
     /* Listen for auth redirect errors (mobile Safari etc.) */
     const unsubAuthErr=window.firebaseAuth?.onAuthError?.(e=>{
       if(e?.code!=="auth/popup-closed-by-user"&&e?.code!=="auth/redirect-cancelled-by-user"){
         toast(e?.code||e?.message||"Erreur de connexion");
       }
+      setAccountDataReady(true);
     });
     return ()=>{if(unsubAuth)unsubAuth();if(unsubSync)unsubSync();if(unsubAuthErr)unsubAuthErr();};
   },[reloadAll]);
@@ -387,6 +393,14 @@ function MainApp(){
     const nextId=hh[0]?.id||null;
     const nextData=nextId?await load(nextId):null;
     setMeta({households:hh,active:nextId});dispatch(hydrateFromStorage(nextData));
+  };
+  const deleteAllHH=async()=>{
+    if(!meta)return;
+    const {householdIds,nextMeta}=clearHouseholdsMeta(meta);
+    for(const id of householdIds){try{await window.storage.delete(hKey(id));}catch(e){}}
+    setMeta(nextMeta);
+    dispatch(hydrateFromStorage(null));
+    setPage("dash");setSub(null);
   };
   const renameHH=(id,name)=>setMeta(p=>({...p,households:p.households.map(h=>h.id===id?{...h,name}:h)}));
 
@@ -424,29 +438,14 @@ function MainApp(){
     );
   }
 
-  if(!meta||meta.households.length===0||!S||!S.cfg?.onb)return (
-    <OnboardingFeature
-      onDone={s=>{createHH("Mon foyer",s);toast("Budget configure !");}}
-      defaultCats={defaultCats}
-      defaultState={defaultState}
-      COLORS={COLORS}
-      FREQ={FREQ}
-      SAV_TYPES={SAV_TYPES}
-      INV_TYPES={INV_TYPES}
+  if(!accountDataReady)return (<div style={{minHeight:"100vh",background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center"}}><style>{CSS}</style><div style={{width:36,height:36,borderRadius:12,background:"var(--accent)"}}/></div>);
+
+  if(!meta||meta.households.length===0||!S)return (
+    <EmptyHouseholdsFeature
       CSS={CSS}
-      SegTabs={SegTabs}
       Inp={Inp}
-      Sel={Sel}
       Btn={Btn}
-      Card={Card}
-      Row={Row}
-      Ico={Ico}
-      loanMonths={loanMonths}
-      calcMP={calcMP}
-      eur={eur}
-      uid={uid}
-      defaultMonth={defaultMonth}
-      monthAggDeps={monthAggDeps}
+      onCreate={name=>createHH(name,createBlankHouseholdState({uid,colors:COLORS}))}
     />
   );
 
@@ -530,7 +529,7 @@ function MainApp(){
         );
       case"cfg":return (
         <Suspense fallback={<div style={{padding:16,color:"var(--text3)"}}>Loading settings...</div>}>
-          <SettingsFeature dispatch={dispatch} uid={uid} toast={toast} meta={meta} setMeta={setMeta} save={save} load={load} switchHH={switchHH} createHH={createHH} deleteHH={deleteHH} renameHH={renameHH} S={S} ps={ps} cm={cm} cats={cats} COLORS={COLORS} ICON_KEYS={ICON_KEYS} Ico={Ico} Row={Row} Btn={Btn} Card={Card} EditableName={EditableName} SegTabs={SegTabs} exportCSV={exportCSV} exportJSON={exportJSON} exportBackup={exportBackup} defaultState={defaultState} defaultMonth={defaultMonth} monthAggDeps={monthAggDeps} Inp={Inp} Modal={Modal} ConfirmDialog={ConfirmDialog} authUser={authUser} setAuthUser={setAuthUser}/>
+          <SettingsFeature dispatch={dispatch} uid={uid} toast={toast} meta={meta} setMeta={setMeta} save={save} load={load} switchHH={switchHH} createHH={createHH} deleteHH={deleteHH} deleteAllHH={deleteAllHH} renameHH={renameHH} S={S} ps={ps} cm={cm} cats={cats} COLORS={COLORS} ICON_KEYS={ICON_KEYS} Ico={Ico} Row={Row} Btn={Btn} Card={Card} EditableName={EditableName} SegTabs={SegTabs} exportCSV={exportCSV} exportJSON={exportJSON} exportBackup={exportBackup} defaultState={defaultState} defaultMonth={defaultMonth} monthAggDeps={monthAggDeps} Inp={Inp} Modal={Modal} ConfirmDialog={ConfirmDialog} authUser={authUser} setAuthUser={setAuthUser}/>
         </Suspense>
       );
       default:return (
