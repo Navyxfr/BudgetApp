@@ -15,7 +15,10 @@ export const sumFC = md => (md?.charges || []).reduce((s, c) => s + toMonthlyCha
 export const sumRev = md => (md?.rev || []).reduce((s, r) => s + (r.amount || 0), 0);
 export const revPerson = (md, pid) => (md?.rev || []).filter(r => r.pid === pid).reduce((s, r) => s + (r.amount || 0), 0);
 export const sumAid = md => (md?.rev || []).filter(r => r.type === "aid").reduce((s, r) => s + (r.amount || 0), 0);
-export const sumVarBudget = md => (md?.cb || []).reduce((s, b) => s + (b.budget || 0), 0);
+export const sumVarBudget = md => (Array.isArray(md?.cb) ? md.cb : []).reduce((sum, item) => {
+  const budget = Number(item?.budget);
+  return sum + (Number.isFinite(budget) ? budget : 0);
+}, 0);
 export const sumSpent = (md, cid) => (md?.exp || []).filter(e => !cid || e.cid === cid).reduce((s, e) => s + (e.amount || 0), 0);
 
 export const prorata = (md, persons) => {

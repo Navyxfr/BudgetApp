@@ -6,14 +6,22 @@ const deepClone = value => {
 export function ensureSimulationMonthShape(monthData, adults, persons, categories, uid) {
   const next = deepClone(monthData || {});
   next.rev = Array.isArray(next.rev) ? next.rev : [];
-  next.cb = Array.isArray(next.cb) ? next.cb : [];
+  next.cb = Array.isArray(next.cb)
+    ? next.cb.filter(item => item && typeof item === "object" && item.cid != null)
+    : [];
   next.alloc = next.alloc && typeof next.alloc === "object" ? next.alloc : {};
 
-  for (const category of categories || []) {
-    if (!next.cb.some(item => item?.cid === category.id)) {
-      next.cb.push({ cid: category.id, budget: 0 });
-    }
+  const budgetsByCategory = new Map();
+  for (const item of next.cb) {
+    const amount = Number(item.budget);
+    budgetsByCategory.set(item.cid, {
+      ...item,
+      budget: Number.isFinite(amount) ? amount : 0
+    });
   }
+  next.cb = (categories || []).map(category =>
+    budgetsByCategory.get(category.id) || { cid: category.id, budget: 0 }
+  );
 
   for (const person of persons || []) {
     if (!next.alloc[person.id]) next.alloc[person.id] = { fc: 0, vc: 0, sav: [], inv: [] };

@@ -196,7 +196,10 @@ export default function SimulationFeature({
                 <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 32, height: 32, borderRadius: 10, background: c.color + "15", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Ico name={c.icon} size={14} color={c.color} /></div>
                   <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text)", flex: 1 }}>{c.name}</span>
-                  <input type="number" inputMode="decimal" value={b?.budget || ""} onChange={e => setW(p => ({ ...p, cb: updateCategoryBudget(p.cb, c.id, parseFloat(e.target.value) || 0) }))} placeholder="0" style={smallInput} />
+                  <input type="number" inputMode="decimal" value={b?.budget || ""} onChange={e => {
+                    const budget = Number.parseFloat(e.currentTarget.value) || 0;
+                    setW(p => ({ ...p, cb: updateCategoryBudget(p.cb, c.id, budget) }));
+                  }} placeholder="0" style={smallInput} />
                 </div>
               );
             })}

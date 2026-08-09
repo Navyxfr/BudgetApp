@@ -17,6 +17,18 @@ describe("simulation state", () => {
     expect(normalized.cb).toEqual([{ cid: "food", budget: 450 }, { cid: "fuel", budget: 0 }]);
   });
 
+  it("cleans malformed, duplicate and textual legacy category budgets", () => {
+    const normalized = ensureSimulationMonthShape(
+      { cb: [null, { cid: "food", budget: "120.5" }, { cid: "food", budget: "bad" }, { budget: 50 }] },
+      [],
+      [],
+      [{ id: "food" }, { id: "fuel" }],
+      () => "new-id"
+    );
+
+    expect(normalized.cb).toEqual([{ cid: "food", budget: 0 }, { cid: "fuel", budget: 0 }]);
+  });
+
   it("updates safely even when the category budget array is absent", () => {
     expect(updateCategoryBudget(undefined, "food", 275)).toEqual([{ cid: "food", budget: 275 }]);
     expect(updateCategoryBudget([{ cid: "food", budget: 100 }], "food", 300)).toEqual([{ cid: "food", budget: 300 }]);

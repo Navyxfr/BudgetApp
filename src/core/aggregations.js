@@ -20,7 +20,10 @@ export const prorata = (md, persons) => {
   return Object.fromEntries(splits.map(x => [x.id, remaining * (x.s / sumSplits)]));
 };
 
-export const sumVarBudget = md => (md?.cb || []).reduce((s, b) => s + (b.budget || 0), 0);
+export const sumVarBudget = md => (Array.isArray(md?.cb) ? md.cb : []).reduce((sum, item) => {
+  const budget = Number(item?.budget);
+  return sum + (Number.isFinite(budget) ? budget : 0);
+}, 0);
 
 export const sumSpent = (md, cid) =>
   (md?.exp || []).filter(e => !cid || e.cid === cid).reduce((s, e) => s + (e.amount || 0), 0);
