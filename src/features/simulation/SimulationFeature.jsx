@@ -1,39 +1,6 @@
 ﻿import React, { useState } from "react";
 import { Check, Plus, RotateCcw, Trash2 } from "lucide-react";
-
-const deepClone = value => {
-  if (typeof structuredClone === "function") return structuredClone(value);
-  return JSON.parse(JSON.stringify(value));
-};
-
-const ensureSimulationMonthShape = (monthData, adults, persons, uid) => {
-  const next = deepClone(monthData || {});
-  next.rev = Array.isArray(next.rev) ? next.rev : [];
-  next.alloc = next.alloc && typeof next.alloc === "object" ? next.alloc : {};
-
-  for (const person of persons || []) {
-    if (!next.alloc[person.id]) next.alloc[person.id] = { fc: 0, vc: 0, sav: [], inv: [] };
-  }
-
-  const existingRevPids = new Set(
-    next.rev
-      .filter(r => (r?.type || "salary") !== "aid" && r?.pid)
-      .map(r => r.pid)
-  );
-  for (const adult of adults || []) {
-    if (!existingRevPids.has(adult.id)) {
-      next.rev.push({
-        id: uid(),
-        label: "Salaire " + adult.name,
-        amount: 0,
-        pid: adult.id,
-        type: "salary"
-      });
-    }
-  }
-
-  return next;
-};
+import { ensureSimulationMonthShape, updateCategoryBudget } from "./simulationState.js";
 
 export default function SimulationFeature({
   S,
@@ -66,7 +33,7 @@ export default function SimulationFeature({
 
   const [st, setSt] = useState(0);
   const [w, setW] = useState(() =>
-    ensureSimulationMonthShape(getMonth(S, cm, monthAggDeps), adults, ps, uid)
+    ensureSimulationMonthShape(getMonth(S, cm, monthAggDeps), adults, ps, cats, uid)
   );
   const STEPS = ["Revenus", "Charges", "Depenses", "Epargne", "Invest.", "Virements"];
 
@@ -229,7 +196,7 @@ export default function SimulationFeature({
                 <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 32, height: 32, borderRadius: 10, background: c.color + "15", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Ico name={c.icon} size={14} color={c.color} /></div>
                   <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text)", flex: 1 }}>{c.name}</span>
-                  <input type="number" inputMode="decimal" value={b?.budget || ""} onChange={e => setW(p => ({ ...p, cb: p.cb.map(x => (x.cid === c.id ? { ...x, budget: parseFloat(e.target.value) || 0 } : x)) }))} placeholder="0" style={smallInput} />
+                  <input type="number" inputMode="decimal" value={b?.budget || ""} onChange={e => setW(p => ({ ...p, cb: updateCategoryBudget(p.cb, c.id, parseFloat(e.target.value) || 0) }))} placeholder="0" style={smallInput} />
                 </div>
               );
             })}
