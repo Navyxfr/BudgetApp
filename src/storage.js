@@ -291,6 +291,7 @@ async function pullFromCloud() {
     const cloudDocs = listed.docs || [];
     if (cloudDocs.length === 0) {
       await pushToCloud();
+      notifySync();
       return;
     }
 
@@ -306,6 +307,7 @@ async function pullFromCloud() {
     notifySync();
   } catch (e) {
     console.warn('[sync] pull failed:', e.message);
+    notifyAuthError(e);
   }
 }
 
